@@ -1,4 +1,86 @@
+---
+title: "Life Expectancy Model"
+author: "Ayush Majumdar"
+date: "2023-11-24"
+output: pdf_document
+---
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
 ```
+```{r}
+install.packages("MASS")
+library(MASS)  
+install.packages("car")
+library(car)
+install.packages("leaps")
+library(leaps)
+```
+```{r}
+#load data
+COUNTRIES <- read.csv("countries.csv")
+#sample size
+n <- nrow(COUNTRIES)
+#random seed for reproduction
+set.seed(250)
+#random sample sized 0.8 * n from 1:n
+subset_id2 <- sample(n, 0.8*n)
+countries_subset <- COUNTRIES[subset_id2, ]
+#model <- lm(fev_val ~ age)
+```
+```{r}
+#1
+predictors <- c('LandArea', 'Population', 'Rural', 'Health', 'Internet', 'BirthRate', 'ElderlyPop', 'CO2', 'GDP', 'Cell')
+lifeexp <- 'LifeExpectancy'
+# lin reg model
+model <- lm(LifeExpectancy ~ LandArea + Population + Rural + Health + Internet + BirthRate + ElderlyPop + CO2 + GDP + Cell, data = countries_subset)
+# Summarize the model
+summary(model)
+```
+```{r}
+#2
+# Resid hist
+hist(resid(model), main = "resid histogram", col = "lightblue", border = "red")
+# qq plot
+qqnorm(resid(model))
+qqline(resid(model))
+# Resid vs fit
+plot(model, which = 3, col = "blue", pch = 16, main = "resid vs fit")
+# Examp of log 
+countries_subset$LogPopulation <- log(countries_subset$Population)
+# refitmodr
+modelTrans <- lm(LifeExpectancy ~ LandArea + LogPopulation + Rural + Health + Internet + BirthRate + ElderlyPop + CO2 + GDP + Cell, data = countries_subset)
+summary(modelTrans)
+```
+```{r}
+#3
+library(car)
+# dataset loaded
+cols = c('LandArea', 'Population', 'Rural', 'Health', 'Internet', 'BirthRate', 'ElderlyPop', 'CO2', 'GDP', 'Cell')
+colsdf = COUNTRIES[cols]
+cormatrix = cor(colsdf)
+#cormatrix <- cor(data.frame(,'LandArea', 'Population', 'Rural', 'Health', 'Internet', 'BirthRate', 'ElderlyPop', 'CO2', 'GDP', 'Cell'))
+print(cormatrix)
+#if vals cor near 1 or -1, high multicollinearity
+vif_result <- vif(model)
+countriesnum <- countries_subset[,3:13]
+pairs(countriesnum)
+print(vif_result)
+
+```
+```{r}
+#4
+# Perform stepwise regression
+final_model <- step(model)
+final_modelver2 <- regsubsets(LifeExpectancy ~ LandArea + LogPopulation + Rural + Health + Internet + BirthRate + ElderlyPop + CO2 + GDP + Cell, data = countries_subset)
+# Display the final mod sum
+summary(final_model)
+summary(final_modelver2)
+# display selected var
+selvar <- names(coef(final_model))
+print(selvar)
+
+```
+Rural, Health, Internet, Birthrate, ElderlyPop, Cell
+
